@@ -1,46 +1,47 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeFamilies #-}
 module Object.Class where
   import Core
 
-  data ClassData
-    = RawData Raw
-    | CompiledData Compiled
+  data Stage
+    = Raw RawData
+    | Compiled CompiledData
     deriving (Show)
 
-  data Raw
-    = Raw {
-      _rawName :: Name,
-      _rawSource :: Source
+  data RawData
+    = RawData {
+      _className :: Name,
+      _classSource :: Source
     }
     deriving (Show)
 
-  data Compiled
-    = Compiled {
-      _compiledDecl :: Integer,
-      _compiledRaw :: Raw
+  data CompiledData
+    = CompiledData {
+      _classDecl :: Integer,
+      _classRaw :: RawData
     }
     deriving (Show)
 
-  instance HasName Raw where name = _rawName
-  instance HasSource Raw where source = _rawSource
+  instance HasName RawData where name = _className
+  instance HasSource RawData where source = _classSource
 
-  instance HasName Compiled where name = name . _compiledRaw
-  instance HasSource Compiled where source = source . _compiledRaw
+  instance HasName CompiledData where name = name . _classRaw
+  instance HasSource CompiledData where source = source . _classRaw
 
-  instance HasName ClassData where
-    name (RawData a) = name a
-    name (CompiledData a) = name a
+  instance HasName Stage where
+    name (Raw a) = name a
+    name (Compiled a) = name a
 
-  instance HasSource ClassData where
-    source (RawData a) = source a
-    source (CompiledData a) = source a
+  instance HasSource Stage where
+    source (Raw a) = source a
+    source (Compiled a) = source a
 
-  raw (RawData a) = a
-  raw (CompiledData a) = _compiledRaw a
+  raw (Raw a) = a
+  raw (Compiled a) = _classRaw a
 
-  compiled (RawData a) = compile a
-  compiled (CompiledData a) = return a
+  compiled (Raw a) = compile a
+  compiled (Compiled a) = return a
 
-  compile = return . Compiled 1
+  compile = return . CompiledData 1
 
-  classDecl = _compiledDecl
+  classDecl = _classDecl

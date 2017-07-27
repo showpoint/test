@@ -16,24 +16,24 @@ module Main where
 
   import Core
   import Object
-  import Object.Class
-  import qualified Object.Class as Class
+  import Object.Class hiding (Class)
+  import qualified Object.Class as Obj
 
   type Cache = IORef (Map (Object Name) (Object Self))
 
   newCache :: IO Cache
   newCache = newIORef $ fromList [
-    (Class "A", Class (RawData $ Raw "A" "class A")),
-    (Class "V", Class (RawData $ Raw "V" "class V"))]
+    (Class "A", Class (Raw $ ClassRaw "A" "class A")),
+    (Class "V", Class (Raw $ ClassRaw "V" "class V"))]
 
-  class Store a m where
-    store :: a -> m ()
+  class Store k v m where
+    store :: k -> v -> m ()
 
-  instance (MonadReader Cache m, MonadIO m) => Store (Object Self) m where
-    store a = ask >>= liftIO . flip modifyIORef' (Map.insert (objName a) a) >> return ()
+  instance (MonadReader Cache m, MonadIO m) => Store (Object Name) (Object Self) m where
+    store k v = ask >>= liftIO . flip modifyIORef' (Map.insert k v) >> return ()
 
-  instance (MonadReader Cache m, MonadIO m) => Store Compiled m where
-    store = store . Class @Self . CompiledData
+  instance (MonadReader Cache m, MonadIO m) => Store (Object Name) Obj.Class m where
+    store k v = store k (Class @Self $ Compiled v)
 
   class Load a r m | a -> r where
     load :: r -> m a
@@ -44,14 +44,14 @@ module Main where
   instance (MonadReader Cache m, MonadIO m) => Load (Object Self) (Object Name) m where
     load r = fromMaybe (error $ show r ++ " not found.") <$> load r
 
-  instance (MonadReader Cache m, MonadIO m) => Load Compiled (Object Name) m where
+  instance (MonadReader Cache m, MonadIO m) => Load Obj.Class (Object Name) m where
     load r = objClass <$> load r >>= \case
-      CompiledData a -> return a
-      RawData a -> do
+      Obj.Class a -> return a
+      ClassRaw a -> do
         c <- compile a
         store c
         return c
 
-  test = classDecl <$> load @Compiled (class_ "A")
+  test = classDecl <$> load @Obj.Class (class_ "A")
 
   main = newCache >>= runReaderT test >>= print

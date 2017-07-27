@@ -9,7 +9,7 @@
 module Object where
   import GHC.Exts (Constraint)
   import Core
-  import Object.Class
+  import Object.Class (Stage)
   import Object.Macro
 
   data Self
@@ -41,17 +41,17 @@ module Object where
   type instance ClassV Name = Name
   type instance MacroV Name = Name
 
-  type instance ClassV Self = ClassData
+  type instance ClassV Self = Stage
   type instance MacroV Self = MacroD
 
-  objClass :: Object Self -> ClassData
+  objClass :: Object Self -> Stage
   objClass (Class a) = a
   objClass a         = error $ "class_: Encountered " ++ name a ++ "."
 
   class Class_ r where
     class_ :: r
 
-  instance Class_ (Object Self -> ClassData) where
+  instance Class_ (Object Self -> Stage) where
     class_ = objClass
 
   instance Class_ (Name -> Object Name) where
